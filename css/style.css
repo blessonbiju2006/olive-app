@@ -243,27 +243,29 @@ main {
 .chip.A { background: rgba(244, 63, 94, .25); border-color: var(--ro); }
 
 .stage-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 6px;
   margin: 8px 0;
 }
 
 .stage-btn {
-  padding: 8px;
+  padding: 8px 12px;
   border-radius: 10px;
   border: 1px solid var(--bd);
   background: var(--pn);
-  font-size: 12px;
-  text-align: center;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   cursor: pointer;
 }
 
 .stage-btn.on {
-  background: var(--em);
-  color: #000;
-  font-weight: 700;
+  background: rgba(16, 185, 129, 0.2);
   border-color: var(--em);
+  color: var(--tx);
+  font-weight: 600;
 }
 
 .tag-list {

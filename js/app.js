@@ -1,4 +1,4 @@
-// PaintPro Command Hub - app logic (PWA + Phase 5 Upgrades)
+// PaintPro Command Hub - app logic (PWA + Dynamic Editable Service Checklists)
 
 // ===== 1. INDEXEDDB ENGINE =====
 
@@ -71,7 +71,11 @@ const defaultState = {
   att:{},floats:[],timers:[],appts:[],sites:[],theme:"dark",settled:{}
 };
 
-const STAGES = ["Sanding/Prep", "Primer Coat", "1st Finish Coat", "Final Coat"];
+const DEFAULT_SERVICE_STAGES = [
+  { name: "Sanding & Surface Prep", done: false },
+  { name: "Primer Coat", done: false },
+  { name: "Finish Coat", done: false }
+];
 
 const migrate=()=>{
   S.settled=S.settled||{};
@@ -81,7 +85,9 @@ const migrate=()=>{
     if(w.siteId===undefined) w.siteId=null;
   });
   S.sites.forEach(s=>{
-    if(!s.stages) s.stages = [false, false, false, false];
+    if(!s.stages || !Array.isArray(s.stages) || typeof s.stages[0] === "boolean") {
+      s.stages = JSON.parse(JSON.stringify(DEFAULT_SERVICE_STAGES));
+    }
     if(!s.rooms) s.rooms = [];
   });
 };
@@ -160,37 +166,31 @@ function vDash(){
 
   let itemCount = 0;
 
-  // 1. Overdue Timers
   overdueTimers.forEach(tm => {
     itemCount++;
     h += `<div class="card urgent row">⏱ <b>Timer Done: ${esc(tm.label)}</b><span class="sp"></span><button class="btn sm" data-a="delt" data-id="${tm.id}">Dismiss</button></div>`;
   });
 
-  // 2. Attendance Pending
   if (mk < n) {
     itemCount++;
     h += `<div class="card warn row">👷 Attendance pending for ${n-mk} worker(s)<span class="sp"></span><button class="btn sm am" data-a="nav" data-v="workers">Mark Now</button></div>`;
   }
 
-  // 3. Today's Client Appointments
   todaysAppts.forEach(a => {
     itemCount++;
     h += `<div class="card urgent">📅 <b>TODAY: ${esc(a.title)}</b> (${a.type}) ${a.time?`· 🕒 ${a.time}`:''}<br>${a.phone?`<span class="mu">📞 ${esc(a.phone)}</span>`:''}<div class="row" style="margin-top:6px;">${a.phone?`<a class="btn sm" href="tel:${a.phone}">Call</a><a class="btn sm" href="https://wa.me/${a.phone.replace(/[^0-9]/g,'')}" target="_blank">WhatsApp</a>`:''}<span class="sp"></span><button class="btn sm" data-a="nav" data-v="appt">View</button></div></div>`;
   });
 
-  // 4. Unread Voice Memos
   if (unreadMemos.length) {
     itemCount++;
     h += `<div class="card warn row">🎙 ${unreadMemos.length} unread voice memo(s)<span class="sp"></span><button class="btn sm am" data-a="nav" data-v="voice">Listen</button></div>`;
   }
 
-  // 5. Overdue Backup
   if (bm) {
     itemCount++;
     h += `<div class="card row">💾 Backup is overdue (>6 days)<span class="sp"></span><button class="btn sm am" data-a="nav" data-v="workers">Back up</button></div>`;
   }
 
-  // 6. Upcoming Appointments
   upcomingAppts.forEach(a => {
     itemCount++;
     h += `<div class="card">📅 <b>${esc(a.title)}</b> · ${a.type} · ${a.date} ${a.time?`(${a.time})`:''}</div>`;
@@ -258,12 +258,13 @@ function sheetHTML(){const w=S.workers.find(x=>x.id==sh.w),d=sh.d,fl=S.floats.fi
 
 function vSite(){
   const t = today();
-  return `<div class="row"><input id="sn" placeholder="Site name"><button class="btn am" data-a="adds">+ Add site</button></div>`+
+  return `<div class="row"><input id="sn" placeholder="New site name"><button class="btn am" data-a="adds">+ Add Site</button></div>`+
   S.sites.map(s => {
     const assigned = active().filter(w => String(w.siteId) === String(s.id));
     const dailyLabor = assigned.reduce((acc, w) => acc + rateOn(w, t), 0);
-    const completedStages = (s.stages || []).filter(Boolean).length;
-    const stagePct = Math.round((completedStages / 4) * 100);
+    const stages = s.stages || [];
+    const completedStages = stages.filter(stg => stg.done).length;
+    const stagePct = stages.length ? Math.round((completedStages / stages.length) * 100) : 0;
 
     return `<div class="card">
       <div class="row">
@@ -273,16 +274,25 @@ function vSite(){
         <button class="x" data-a="delsite" data-id="${s.id}">✕</button>
       </div>
 
-      <p class="mu" style="margin-bottom:4px;">Paint Stage Checklist:</p>
+      <div style="margin-bottom:6px;"><span class="mu">Service & Paint Stages Checklist (${completedStages}/${stages.length}):</span></div>
+      
       <div class="stage-grid">
-        ${STAGES.map((stg, idx) => `
-          <button class="stage-btn ${(s.stages && s.stages[idx]) ? 'on' : ''}" data-a="toggleStage" data-site="${s.id}" data-idx="${idx}">
-            ${(s.stages && s.stages[idx]) ? '✓ ' : ''}${stg}
-          </button>
+        ${stages.map((stg, idx) => `
+          <div class="stage-btn ${stg.done ? 'on' : ''}">
+            <span style="cursor:pointer;" data-a="toggleStage" data-site="${s.id}" data-idx="${idx}">
+              ${stg.done ? '✓ ' : '⚪ '}${esc(stg.name)}
+            </span>
+            <button class="x" style="min-height:24px; padding:0 6px; font-size:12px;" data-a="delstage" data-site="${s.id}" data-idx="${idx}">✕</button>
+          </div>
         `).join("")}
       </div>
 
-      <div style="margin-top:10px;">
+      <div class="row" style="margin-top:8px;">
+        <input id="stg_${s.id}" placeholder="Add stage (e.g. Putty Work, Waterproofing)" style="min-height:36px; font-size:12px;">
+        <button class="btn sm" data-a="addstage" data-site="${s.id}">+ Stage</button>
+      </div>
+
+      <div style="margin-top:12px;">
         <span class="mu">Room Tags:</span>
         <div class="tag-list">
           ${(s.rooms || []).map((rm, rIdx) => `<span class="tag">${esc(rm)} <button class="x" style="min-height:20px; padding:0 4px;" data-a="delroom" data-site="${s.id}" data-idx="${rIdx}">✕</button></span>`).join("")}
@@ -458,7 +468,7 @@ document.addEventListener("click",async e=>{
   else if(a=="eunarch"){S.workers.find(x=>x.id==D.w).archived=false;save();render()}
   else if(a=="adds"){
     const n=$("#sn").value.trim();
-    if(n){S.sites.push({id:Date.now(),name:n,stages:[false,false,false,false],rooms:[]});save();render();}
+    if(n){S.sites.push({id:Date.now(),name:n,stages:JSON.parse(JSON.stringify(DEFAULT_SERVICE_STAGES)),rooms:[]});save();render();}
   }
   else if(a=="delsite"){
     S.sites=S.sites.filter(x=>String(x.id)!==String(D.id));
@@ -467,7 +477,26 @@ document.addEventListener("click",async e=>{
   }
   else if(a=="toggleStage"){
     const s = S.sites.find(x=>String(x.id)===String(D.site));
-    if(s){ s.stages[D.idx] = !s.stages[D.idx]; save(); render(); }
+    if(s && s.stages[D.idx]){
+      s.stages[D.idx].done = !s.stages[D.idx].done;
+      save(); render();
+    }
+  }
+  else if(a=="addstage"){
+    const inp = document.getElementById("stg_" + D.site);
+    const stgName = inp ? inp.value.trim() : "";
+    const s = S.sites.find(x=>String(x.id)===String(D.site));
+    if(s && stgName){
+      s.stages.push({ name: stgName, done: false });
+      save(); render();
+    }
+  }
+  else if(a=="delstage"){
+    const s = S.sites.find(x=>String(x.id)===String(D.site));
+    if(s && s.stages){
+      s.stages.splice(D.idx, 1);
+      save(); render();
+    }
   }
   else if(a=="addroom"){
     const inp = document.getElementById("rm_" + D.site);
