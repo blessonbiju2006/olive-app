@@ -1,5 +1,5 @@
 // Service Worker for Olive App (PaintPro Command Hub)
-const CACHE_NAME = 'olive-app-v2';
+const CACHE_NAME = 'olive-app-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -33,7 +33,6 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network-First with Cache Fallback strategy
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
@@ -58,7 +57,6 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Handle push notification alerts routed from main thread
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
     const { title, body } = event.data;

@@ -1,6 +1,6 @@
-// PaintPro Command Hub - app logic (PWA Engine + Worker-Site Linking)
+// PaintPro Command Hub - app logic (PWA + Phase 5 Upgrades)
 
-// ===== 1. INDEXEDDB ENGINE & STORAGE =====
+// ===== 1. INDEXEDDB ENGINE =====
 
 const DB_NAME = "olive_app_db";
 const DB_VERSION = 1;
@@ -71,12 +71,18 @@ const defaultState = {
   att:{},floats:[],timers:[],appts:[],sites:[],theme:"dark",settled:{}
 };
 
+const STAGES = ["Sanding/Prep", "Primer Coat", "1st Finish Coat", "Final Coat"];
+
 const migrate=()=>{
   S.settled=S.settled||{};
   S.sites=S.sites||[];
   S.workers.forEach(w=>{
     if(!w.rates)w.rates=[{from:"0000-01-01",rate:w.rate}];
     if(w.siteId===undefined) w.siteId=null;
+  });
+  S.sites.forEach(s=>{
+    if(!s.stages) s.stages = [false, false, false, false];
+    if(!s.rooms) s.rooms = [];
   });
 };
 
@@ -115,7 +121,6 @@ const cd=end=>{const s=Math.max(0,Math.round((end-Date.now())/1000));return Math
 
 function toast(m){const t=$("#toast");t.textContent=m;t.style.display="block";setTimeout(()=>t.style.display="none",2200)}
 
-// Update Notify Header Button Badge
 function updateNotifyBadge() {
   const nb = document.querySelector("[data-a=notify]");
   if (!nb) return;
@@ -135,14 +140,64 @@ function updateNotifyBadge() {
 
 const tgs=(w,d)=>{const L=isLocked(w,d);return ["P","H","A"].map(k=>`<button class="tg ${k}${S.att[w+"|"+d]==k?" on":""}"${L?" disabled":""} data-a="set" data-w="${w}" data-d="${d}" data-v="${k}">${LB[k]}</button>`).join("")};
 
-function vDash(){const t=today(),days=weekDays(0),n=active().length,mk=active().filter(w=>S.att[w.id+"|"+t]).length;let due=0;S.workers.forEach(w=>due+=owed(calc(w,days)));
- const up=S.appts.filter(a=>a.date>=t).sort((a,b)=>a.date<b.date?-1:1).slice(0,4),un=memos.filter(m=>!m.heard).length,bm=hasData()&&(backupAge()===null||backupAge()>6);
- let h=`<div class="grid"><div class="card stat">Attendance today<b>${mk}/${n}</b></div><div class="card stat">Week still to pay<b>${money(due)}</b></div><div class="card stat">Active timers<b>${S.timers.filter(x=>!x.fired).length}</b></div><div class="card stat">Unread memos<b>${un}</b></div></div><h3>Priority queue</h3>`;
- if(mk<n)h+=`<div class="card row">Attendance pending for ${n-mk} worker(s)<span class="sp"></span><button class="btn sm am" data-a="nav" data-v="workers">Open</button></div>`;
- up.forEach(a=>h+=`<div class="card">📅 <b>${esc(a.title)}</b> · ${a.type} · ${a.date}</div>`);
- if(bm)h+=`<div class="card row">💾 Backup is overdue<span class="sp"></span><button class="btn sm am" data-a="nav" data-v="workers">Back up</button></div>`;
- if(un)h+=`<div class="card row">🎙 ${un} unread voice memo(s)<span class="sp"></span><button class="btn sm" data-a="nav" data-v="voice">Listen</button></div>`;
- return h+(mk==n&&!up.length&&!un&&!bm?`<div class="card mu">All clear for now.</div>`:"")}
+function vDash(){
+  const t=today(), days=weekDays(0), n=active().length, mk=active().filter(w=>S.att[w.id+"|"+t]).length;
+  let due=0; S.workers.forEach(w=>due+=owed(calc(w,days)));
+  
+  const overdueTimers = S.timers.filter(x=>x.fired);
+  const todaysAppts = S.appts.filter(a=>a.date === t);
+  const upcomingAppts = S.appts.filter(a=>a.date > t).sort((a,b)=>a.date<b.date?-1:1).slice(0,3);
+  const unreadMemos = memos.filter(m=>!m.heard);
+  const bm = hasData() && (backupAge()===null || backupAge()>6);
+
+  let h = `<div class="grid">
+    <div class="card stat">Attendance today<b>${mk}/${n}</b></div>
+    <div class="card stat">Week still to pay<b>${money(due)}</b></div>
+    <div class="card stat">Active timers<b>${S.timers.filter(x=>!x.fired).length}</b></div>
+    <div class="card stat">Unread memos<b>${unreadMemos.length}</b></div>
+  </div>
+  <h3>Ranked Priority Queue</h3>`;
+
+  let itemCount = 0;
+
+  // 1. Overdue Timers
+  overdueTimers.forEach(tm => {
+    itemCount++;
+    h += `<div class="card urgent row">⏱ <b>Timer Done: ${esc(tm.label)}</b><span class="sp"></span><button class="btn sm" data-a="delt" data-id="${tm.id}">Dismiss</button></div>`;
+  });
+
+  // 2. Attendance Pending
+  if (mk < n) {
+    itemCount++;
+    h += `<div class="card warn row">👷 Attendance pending for ${n-mk} worker(s)<span class="sp"></span><button class="btn sm am" data-a="nav" data-v="workers">Mark Now</button></div>`;
+  }
+
+  // 3. Today's Client Appointments
+  todaysAppts.forEach(a => {
+    itemCount++;
+    h += `<div class="card urgent">📅 <b>TODAY: ${esc(a.title)}</b> (${a.type}) ${a.time?`· 🕒 ${a.time}`:''}<br>${a.phone?`<span class="mu">📞 ${esc(a.phone)}</span>`:''}<div class="row" style="margin-top:6px;">${a.phone?`<a class="btn sm" href="tel:${a.phone}">Call</a><a class="btn sm" href="https://wa.me/${a.phone.replace(/[^0-9]/g,'')}" target="_blank">WhatsApp</a>`:''}<span class="sp"></span><button class="btn sm" data-a="nav" data-v="appt">View</button></div></div>`;
+  });
+
+  // 4. Unread Voice Memos
+  if (unreadMemos.length) {
+    itemCount++;
+    h += `<div class="card warn row">🎙 ${unreadMemos.length} unread voice memo(s)<span class="sp"></span><button class="btn sm am" data-a="nav" data-v="voice">Listen</button></div>`;
+  }
+
+  // 5. Overdue Backup
+  if (bm) {
+    itemCount++;
+    h += `<div class="card row">💾 Backup is overdue (>6 days)<span class="sp"></span><button class="btn sm am" data-a="nav" data-v="workers">Back up</button></div>`;
+  }
+
+  // 6. Upcoming Appointments
+  upcomingAppts.forEach(a => {
+    itemCount++;
+    h += `<div class="card">📅 <b>${esc(a.title)}</b> · ${a.type} · ${a.date} ${a.time?`(${a.time})`:''}</div>`;
+  });
+
+  return h + (itemCount === 0 ? `<div class="card mu">All clear! No urgent priorities on site.</div>` : "");
+}
 
 function ledger(){const os=[-3,-2,-1,0];let h=`<div class="card"><table><tr><th>Worker</th>${os.map(o=>`<th>${weekDays(o)[0].slice(5)}</th>`).join("")}<th>Total</th></tr>`;
  S.workers.forEach(w=>{if(w.archived&&!os.some(o=>{const c=calc(w,weekDays(o));return c.e||c.f||c.paid!==undefined}))return;let t=0;h+=`<tr><td>${esc(w.name)}${w.archived?" (archived)":""}</td>`;os.forEach(o=>{const c=calc(w,weekDays(o)),n=c.n;t+=n;h+=`<td class="${n<0?"neg":""}">${money(n)}${c.paid!==undefined?" ✓":""}</td>`});h+=`<td><b>${money(t)}</b></td></tr>`});
@@ -207,23 +262,65 @@ function vSite(){
   S.sites.map(s => {
     const assigned = active().filter(w => String(w.siteId) === String(s.id));
     const dailyLabor = assigned.reduce((acc, w) => acc + rateOn(w, t), 0);
+    const completedStages = (s.stages || []).filter(Boolean).length;
+    const stagePct = Math.round((completedStages / 4) * 100);
+
     return `<div class="card">
       <div class="row">
         <b>${esc(s.name)}</b>
         <span class="sp"></span>
+        <b>${stagePct}% Complete</b>
         <button class="x" data-a="delsite" data-id="${s.id}">✕</button>
       </div>
-      <div class="row"><span class="mu">Progress:</span><b>${s.pct}%</b></div>
-      <input type="range" min="0" max="100" step="5" value="${s.pct}" data-a="pct" data-id="${s.id}">
+
+      <p class="mu" style="margin-bottom:4px;">Paint Stage Checklist:</p>
+      <div class="stage-grid">
+        ${STAGES.map((stg, idx) => `
+          <button class="stage-btn ${(s.stages && s.stages[idx]) ? 'on' : ''}" data-a="toggleStage" data-site="${s.id}" data-idx="${idx}">
+            ${(s.stages && s.stages[idx]) ? '✓ ' : ''}${stg}
+          </button>
+        `).join("")}
+      </div>
+
+      <div style="margin-top:10px;">
+        <span class="mu">Room Tags:</span>
+        <div class="tag-list">
+          ${(s.rooms || []).map((rm, rIdx) => `<span class="tag">${esc(rm)} <button class="x" style="min-height:20px; padding:0 4px;" data-a="delroom" data-site="${s.id}" data-idx="${rIdx}">✕</button></span>`).join("")}
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <input id="rm_${s.id}" placeholder="Add room (e.g. Master Bedroom)" style="min-height:36px; font-size:12px;">
+          <button class="btn sm" data-a="addroom" data-site="${s.id}">+ Room</button>
+        </div>
+      </div>
+
       <div style="margin-top:10px; border-top:1px solid var(--bd); padding-top:8px;">
         <span class="mu">Assigned Painters (${assigned.length}):</span>
-        ${assigned.length ? `<p style="margin:4px 0;">${assigned.map(w=>`<b>${esc(w.name)}</b> (${money(rateOn(w,t))}/day)`).join(" · ")}</p><p class="mu">Daily site labor: <b>${money(dailyLabor)}</b></p>` : `<p class="mu">No workers assigned to this site yet.</p>`}
+        ${assigned.length ? `<p style="margin:4px 0;">${assigned.map(w=>`<b>${esc(w.name)}</b> (${money(rateOn(w,t))}/day)`).join(" · ")}</p><p class="mu">Daily labor: <b>${money(dailyLabor)}</b></p>` : `<p class="mu">No painters assigned yet.</p>`}
       </div>
     </div>`;
   }).join("") + (S.sites.length?"":`<p class="mu">No job sites added yet.</p>`);
 }
 
-function vAppt(){return `<div class="row"><input id="at" placeholder="Client / purpose"><input id="ad" type="date" value="${today()}"><select id="ay"><option>Consultation</option><option>Site visit</option></select><button class="btn am" data-a="adda">+ Add</button></div>`+[...S.appts].sort((a,b)=>a.date<b.date?-1:1).map(a=>`<div class="card row"><span><b>${esc(a.title)}</b><br><span class="mu">${a.type} · ${a.date}</span></span><span class="sp"></span><button class="x" data-a="dela" data-id="${a.id}">✕</button></div>`).join("")}
+function vAppt(){
+  return `<div class="card">
+    <div class="row"><input id="at" placeholder="Client name / purpose"><input id="ap" placeholder="Phone number"></div>
+    <div class="row"><input id="ad" type="date" value="${today()}"><input id="atm" type="time" value="10:00"><select id="ay"><option>Consultation</option><option>Site Visit</option><option>Final Walkthrough</option></select><button class="btn am" data-a="adda">+ Add</button></div>
+    <input id="aaddr" placeholder="Site address" style="width:100%;">
+  </div>` +
+  [...S.appts].sort((a,b)=>a.date<b.date?-1:1).map(a => `<div class="card">
+    <div class="row">
+      <b>${esc(a.title)}</b>
+      <span class="sp"></span>
+      <span class="mu">${a.type}</span>
+      <button class="x" data-a="dela" data-id="${a.id}">✕</button>
+    </div>
+    <p class="mu" style="margin:2px 0;">📅 ${a.date} ${a.time ? `· 🕒 ${a.time}` : ''}</p>
+    ${a.phone ? `<p class="mu" style="margin:2px 0;">📞 ${esc(a.phone)}</p>` : ''}
+    ${a.addr ? `<p class="mu" style="margin:2px 0;">📍 ${esc(a.addr)}</p>` : ''}
+    ${a.phone ? `<div class="row" style="margin-top:8px;"><a class="btn sm" href="tel:${a.phone}">📞 Call</a><a class="btn sm" href="https://wa.me/${a.phone.replace(/[^0-9]/g,'')}" target="_blank">💬 WhatsApp</a></div>` : ''}
+  </div>`).join("");
+}
+
 const qt=()=>`<div class="row">${[5,15,30,60].map(m=>`<button class="btn" data-a="tm" data-v="${m}">+${m} min</button>`).join("")}</div>`;
 
 function vVoice(){
@@ -359,13 +456,33 @@ document.addEventListener("click",async e=>{
    ew=null;save();toast(m);render()}
   else if(a=="earch"){const w=S.workers.find(x=>x.id==D.w);w.archived=true;ew=null;save();toast(w.name+" archived");render()}
   else if(a=="eunarch"){S.workers.find(x=>x.id==D.w).archived=false;save();render()}
-  else if(a=="adds"){const n=$("#sn").value.trim();if(n){S.sites.push({id:Date.now(),name:n,pct:0});save();render()}}
+  else if(a=="adds"){
+    const n=$("#sn").value.trim();
+    if(n){S.sites.push({id:Date.now(),name:n,stages:[false,false,false,false],rooms:[]});save();render();}
+  }
   else if(a=="delsite"){
     S.sites=S.sites.filter(x=>String(x.id)!==String(D.id));
     S.workers.forEach(w=>{ if(String(w.siteId)===String(D.id)) w.siteId=null; });
     save();render();
   }
-  else if(a=="adda"){const n=$("#at").value.trim();if(n){S.appts.push({id:Date.now(),title:n,date:$("#ad").value,type:$("#ay").value});save();render()}}
+  else if(a=="toggleStage"){
+    const s = S.sites.find(x=>String(x.id)===String(D.site));
+    if(s){ s.stages[D.idx] = !s.stages[D.idx]; save(); render(); }
+  }
+  else if(a=="addroom"){
+    const inp = document.getElementById("rm_" + D.site);
+    const rmName = inp ? inp.value.trim() : "";
+    const s = S.sites.find(x=>String(x.id)===String(D.site));
+    if(s && rmName){ s.rooms.push(rmName); save(); render(); }
+  }
+  else if(a=="delroom"){
+    const s = S.sites.find(x=>String(x.id)===String(D.site));
+    if(s){ s.rooms.splice(D.idx, 1); save(); render(); }
+  }
+  else if(a=="adda"){
+    const n=$("#at").value.trim(), p=$("#ap").value.trim(), d=$("#ad").value, tm=$("#atm").value, y=$("#ay").value, addr=$("#aaddr").value.trim();
+    if(n){ S.appts.push({id:Date.now(),title:n,phone:p,date:d,time:tm,type:y,addr:addr}); save(); render(); }
+  }
   else if(a=="dela"){S.appts=S.appts.filter(x=>x.id!=D.id);save();render()}
   else if(a=="tm")addTimer("",+v);
   else if(a=="addt")addTimer($("#tl").value.trim(),+$("#tmn").value);
@@ -390,9 +507,7 @@ document.addEventListener("click",async e=>{
 
 document.addEventListener("change",e=>{
   const t=e.target;
-  if(t.dataset.a=="pct"){
-    const s=S.sites.find(x=>x.id==t.dataset.id);if(s){s.pct=+t.value;save();render();}
-  } else if(t.dataset.a=="assignsite"){
+  if(t.dataset.a=="assignsite"){
     const w=S.workers.find(x=>x.id==t.dataset.w);if(w){w.siteId=t.value?+t.value:null;save();render();toast("Assigned site updated");}
   }
 });
