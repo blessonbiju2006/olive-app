@@ -1,5 +1,66 @@
 // PaintPro Command Hub - app logic (PWA + Dynamic Editable Service Checklists)
 
+// ===== 0. FIREBASE REAL-TIME CLOUD SYNC =====
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAziKfRzxvKnNNiFGDbcrpS5ObxmeJlrAA",
+  authDomain: "olive-app-05-10-2026.firebaseapp.com",
+  projectId: "olive-app-05-10-2026",
+  storageBucket: "olive-app-05-10-2026.firebasestorage.app",
+  messagingSenderId: "208484141669",
+  appId: "1:208484141669:web:20fbcbc8a7008ae88ad48c",
+  measurementId: "G-N71TXQSH8G"
+};
+
+// Initialize Firebase & Firestore
+firebase.initializeApp(firebaseConfig);
+const fsDb = firebase.firestore();
+
+// Enable offline persistence
+fsDb.enablePersistence().catch(err => {
+  console.log("Firestore persistence mode:", err.code);
+});
+
+// Push local state updates to Firestore cloud
+async function syncToCloud() {
+  try {
+    await fsDb.collection("olive_hub").doc("main_hub").set({
+      workers: S.workers,
+      att: S.att,
+      floats: S.floats,
+      timers: S.timers,
+      appts: S.appts,
+      sites: S.sites,
+      settled: S.settled,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error("Cloud sync save error:", e);
+  }
+}
+
+// Listen for real-time incoming changes from other connected devices
+function listenToCloudSync() {
+  fsDb.collection("olive_hub").doc("main_hub")
+    .onSnapshot((doc) => {
+      if (doc.exists) {
+        const cloudData = doc.data();
+        
+        // Merge cloud state locally
+        S = { ...S, ...cloudData };
+        
+        // Update local storage & IndexedDB
+        try { localStorage.setItem("pp", JSON.stringify(S)); } catch(e){}
+        if (db) idb.setKV("state", S);
+
+        // Re-render UI dynamically if not actively typing inside an input
+        if (document.activeElement && document.activeElement.tagName !== "INPUT") {
+          render();
+        }
+      }
+    });
+}
+
 // ===== 1. INDEXEDDB ENGINE =====
 
 const DB_NAME = "olive_app_db";
@@ -95,11 +156,12 @@ const migrate=()=>{
 const save = async () => {
   try { localStorage.setItem("pp", JSON.stringify(S)); } catch(e){}
   await idb.setKV("state", S);
+  syncToCloud(); // Triggers real-time cloud sync across devices
 };
 
 let view="dash",off=0,mode="week",sh=null,bk=null,rk=null,ew=null,armed=false,rtxt="",memos=[],rec=null,actx,an,raf,stream,chunks=[],selectedSiteFilter="all";
 
-if (navigator.storage && navigator.storage.persist) {
+if (navigator.storage && navigator.storagepersist) {
   navigator.storage.persist();
 }
 
@@ -590,4 +652,7 @@ setInterval(()=>{
   migrate();
   memos = await idb.getMemos();
   render();
+
+  // Activate Live Cloud Sync
+  listenToCloudSync();
 })();
