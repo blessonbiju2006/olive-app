@@ -298,6 +298,7 @@ function vWorkers(){
           ${S.sites.map(s=>`<option value="${s.id}"${String(w.siteId)===String(s.id)?' selected':''}>${esc(s.name)}</option>`).join("")}
         </select>
         <button class="x" data-a="edit" data-w="${w.id}">✎ Edit</button>
+        <button class="x" style="background:#ef4444; color:#fff; border-radius:4px; padding:4px 8px;" data-a="delw" data-w="${w.id}">✕ Remove</button>
       </div>
       ${assignedSite ? `<p class="mu" style="margin-top:-6px; margin-bottom:8px;">📍 Assigned: <b>${esc(assignedSite.name)}</b></p>` : ''}
       ${ew==w.id?editPanel(w):""}
@@ -551,6 +552,16 @@ document.addEventListener("click",async e=>{
     if(s && stgName){
       s.stages.push({ name: stgName, done: false });
       save(); render();
+    }
+  }
+  else if(a=="delw"){
+    const w = S.workers.find(x=>x.id==D.w);
+    if(w && confirm(`Permanently remove ${w.name} from workers?`)){
+      S.workers = S.workers.filter(x=>x.id!=D.w);
+      if(ew == D.w) ew = null;
+      save();
+      toast(w.name + " removed");
+      render();
     }
   }
   else if(a=="delstage"){
