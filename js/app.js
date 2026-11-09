@@ -298,7 +298,7 @@ function vWorkers(){
           ${S.sites.map(s=>`<option value="${s.id}"${String(w.siteId)===String(s.id)?' selected':''}>${esc(s.name)}</option>`).join("")}
         </select>
         <button class="x" data-a="edit" data-w="${w.id}">✎ Edit</button>
-        <button class="x" style="background:#ef4444; color:#fff; border-radius:4px; padding:4px 8px;" data-a="delw" data-w="${w.id}">✕ Remove</button>
+        <button data-a="delw" data-w="${w.id}" style="background: rgba(255, 255, 255, 0.05); color: #d1d5db; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 6px 16px; font-size: 13px; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Remove</button>
       </div>
       ${assignedSite ? `<p class="mu" style="margin-top:-6px; margin-bottom:8px;">📍 Assigned: <b>${esc(assignedSite.name)}</b></p>` : ''}
       ${ew==w.id?editPanel(w):""}
