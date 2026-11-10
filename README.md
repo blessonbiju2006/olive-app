@@ -1,60 +1,121 @@
 # Olive App — PaintPro Command Hub 🎨📱
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Architecture-Zero--Framework_PWA-blue?style=for-the-badge&logo=javascript" alt="Zero Framework PWA" />
-  <img src="https://img.shields.io/badge/Storage-IndexedDB-orange?style=for-the-badge&logo=database" alt="IndexedDB" />
-  <img src="https://img.shields.io/badge/Cloud-Firebase_Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase Firestore" />
-  <img src="https://img.shields.io/badge/Hosting-GitHub_Pages-222222?style=for-the-badge&logo=github" alt="GitHub Pages" />
-  <img src="https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge" alt="License" />
-</p>
+> A lightweight, mobile-first operations hub for painting contractors to coordinate workers, monitor site activity, manage payments, and keep day-to-day work organized.
 
-> A lightweight, zero-framework, offline-first Progressive Web Application (PWA) engineered for painting contractors, interior designers, and field labor management teams.
+<p align="center">
+  <img src="assets/olive-app-hero.png" alt="Olive App — PaintPro Command Hub" width="100%" />
+</p>
 
 ---
 
-## 📸 App Screenshots & Preview
+## 📌 Project Summary
 
-<p align="center">
-  <img src="assets/dashboard-preview.png" alt="Olive App Main Dashboard" width="750" />
-</p>
+- **Project Name:** Olive App
+- **Product Title:** PaintPro Command Hub
+- **Architecture:** Zero-Framework Progressive Web App (PWA)
+- **Primary Use Case:** Painting contractor operations, field labor tracking, site stages, and client appointments
+- **Brand Tagline:** *We make your dreams*
 
-<p align="center">
-  <i>Main Command Dashboard — Attendance tracking, wage rate calculations, float advance ledgers, and site stage progress.</i>
-</p>
+---
+
+## 🎨 Overview
+
+Olive App is designed to simplify field site management for painting contractors and turnkey solution providers. It consolidates site management and workforce activities into a high-speed, mobile-friendly interface so contractors or site supervisors can check real-time progress and manage attendance without needing a desktop setup.
+
+The dashboard provides an instant operational snapshot: worker attendance, weekly payroll balances, active task timers, unread voice memos, and a prioritized action queue.
 
 ---
 
 ## ✨ Key Features
 
-* **⚡ Zero-Framework Speed:** Built with pure HTML5, CSS3, and JavaScript (ES6+). Operating with **0 KB framework overhead**, it boots in milliseconds on low-end mobile hardware under field conditions.
-* **📶 Offline-First Storage:** Powered by browser **IndexedDB** (`olive_app_db`). Record attendance, issue cash float advances, and record audio field notes even with zero mobile network signal.
-* **🔄 Real-Time Cloud Sync:** Automatic bi-directional synchronization across connected supervisor devices via **Google Firebase Firestore** (`asia-south1` / Mumbai region).
-* **👷 Worker & Payroll Ledger:** Track daily worker attendance, historical daily rates, cash float advance history with instant reversal support, and locked weekly payroll totals in Indian Rupees (₹).
-* **🏗️ Site & Stage Tracking:** Organize active sites through dynamic stage checklists (Sanding, Primer, Finish Coat) paired with room tagging.
-* **🎙️ Localized Voice Memos:** Record audio field notes directly on-site using the browser Web Audio API, stored safely inside device memory to preserve cloud bandwidth.
-* **⏰ Task Timers & Appointments:** Monitor drying cycles with Service Worker notifications, and initiate client contact directly via embedded call and WhatsApp links.
-* **🌓 High-Contrast Dark / Light Theme:** Custom UI theme toggle optimized for high visibility under harsh sunlight at job sites.
+### 📊 Dashboard & Priority Queue
+- **Operational Summary Cards:** Instant counters for attendance today, weekly pending payouts, active drying timers, and unread memos.
+- **Ranked Priority Queue:** Highlighted alert stack surfacing completed drying timers and pending attendance items.
+- **Quick Action Triggers:** One-tap dismissal of alerts and immediate attendance navigation.
+
+### 👷 Workforce & Attendance Management
+- Dedicated worker management panel with historical wage rate tracking.
+- Attendance toggling for active field teams with visual pending notices.
+- Permanent worker removal controls with confirmation dialogs.
+
+### 💰 Payroll & Cash Float Ledger
+- Dynamic weekly earnings and balance calculation in Indian Rupees (₹).
+- Cash float (advance) ledger with instant entry and reversal history.
+- Week settlement locking to finalize payroll totals once paid.
+
+### 🏗️ Job Site Progress & Drying Timers
+- Site-level tracking with room tagging and stage checklists (e.g., Sanding, Primer, Finish Coat).
+- Built-in timer engine with Service Worker notifications for time-sensitive paint curing cycles.
+
+### 📅 Client Appointments
+- Client scheduling card view with direct Call launcher and WhatsApp message links.
+
+### 🎙️ Offline Voice Memos
+- Web Audio API voice recorder for on-site field notes.
+- Audio payloads saved directly to device storage to avoid cloud bandwidth limits.
+
+### 📱 Native PWA Experience
+- Installable directly to mobile home screens with zero browser address bar overhead.
+- Optimized for direct sunlight visibility with high-contrast Dark and Light modes.
 
 ---
 
-## 🏗️ Architecture & Technical Stack
+## 📸 Media & Visual Assets
+
+Place your promotional graphics and UI screenshots inside the `assets/` folder:
 
 ```text
-[ Olive App PWA Client ]
-         │
-         ├──► Local Disk (IndexedDB & LocalStorage) ──► Instant Offline State & Voice Memos
-         │
-         └──► Google Firebase Firestore ─────────────► Real-Time Cloud Sync (asia-south1)
+assets/
+├── olive-app-hero.png       # Main promotional banner poster
+├── dashboard-preview.png    # Mobile UI dashboard screenshot
+├── workers-ledger.png       # Attendance & float ledger screenshot
+└── site-stages.png          # Room progress checklist screenshot
 ```
 
-| Component Layer | Technology | Primary Role |
+---
+
+## 🏗️ Architecture & Technology Stack
+
+Olive App operates on a **zero-framework, client-first model**. It eliminates runtime dependencies like React, Vue, or Flutter to achieve 0 KB framework overhead and sub-second launch times on mobile devices.
+
+### Technical Breakdown
+
+| Layer | Component / Technology | Operational Role |
 | :--- | :--- | :--- |
-| **Frontend UI** | Vanilla JavaScript (ES6+), HTML5, CSS3 | Reactive DOM rendering & UI state handling |
-| **PWA Engine** | Service Worker (`sw.js`), Web App Manifest | Caching shell assets & background notifications |
-| **Local Database** | Browser IndexedDB (`olive_app_db`) | Offline storage for state (`kv`) and audio blobs (`memos`) |
-| **Cloud Database** | Google Firebase Firestore (SDK v8) | Multi-device real-time sync (`olive_hub/main_hub`) |
-| **Static Hosting** | GitHub Pages | Global CDN delivery of static HTML/CSS/JS assets |
-| **Version Control** | Git & GitHub | Source code repository and automated deployment pipeline |
+| **Frontend UI** | HTML5, CSS3, Vanilla JS (ES6+) | Native browser rendering with 0 KB framework overhead |
+| **PWA Layer** | Service Worker (`sw.js`) | Offline shell caching, asset delivery, and background timers |
+| **App Manifest** | `manifest.webmanifest` | PWA installation settings, icons, and display configurations |
+| **Local Database** | IndexedDB (`olive_app_db`) | Stores app state (`kv` store) and binary audio clips (`memos` store) |
+| **Cloud Database** | Google Firebase Firestore | Real-time multi-device cloud sync (`asia-south1` / Mumbai region) |
+| **Static Hosting** | GitHub Pages | CDN asset delivery for the PWA client |
+
+### High-Level Data Flow
+
+```mermaid
+flowchart TD
+    U[Contractor / Site Supervisor] --> UI[Olive App PWA Client]
+    UI --> DASH[Dashboard & Priority Queue]
+    UI --> WORKERS[Workers & Attendance]
+    UI --> SITE[Site Progress & Timers]
+    UI --> APPT[Appointments]
+    UI --> MEMO[Voice Memos]
+    UI --> PAY[Payroll & Floats]
+
+    UI <--> LOCAL[(Local IndexedDB\nolive_app_db)]
+    UI <--> FB[(Cloud Firestore\nasia-south1)]
+```
+
+---
+
+## 💾 Dual-Storage Engine Mechanics
+
+1. **Local Disk Storage (IndexedDB - `olive_app_db`):**
+   - App state (`S`) is cached locally inside the `"kv"` store for instant offline startup.
+   - Voice memos are recorded via the browser Web Audio API and stored as binary `Blob` objects in the `"memos"` store, staying 100% local to save bandwidth.
+
+2. **Cloud Synchronization (Google Firebase Firestore):**
+   - Text data (workers, attendance, floats, sites, appointments) syncs bi-directionally across devices via `olive_hub/main_hub`.
+   - Allows supervisors on different phones to view live attendance updates.
 
 ---
 
@@ -62,14 +123,14 @@
 
 ```text
 olive-app/
-├── index.html              # Core SPA HTML structure and container elements
+├── index.html              # Core SPA HTML structure & container views
 ├── js/
 │   └── app.js              # State engine, DOM renderer, IndexedDB & Firestore handlers
-├── css/                    # Responsive CSS variables, layouts, and theme definitions
-├── assets/                 # Readme screenshots, UI graphics, and branding assets
-│   └── dashboard-preview.png
-├── manifest.webmanifest    # PWA installation metadata, icons, and theme colors
-├── sw.js                   # Service Worker cache management script
+├── css/                    # Custom layout styles, theme variables, and component CSS
+├── assets/                 # App banners, poster images, and screenshot graphics
+│   └── olive-app-hero.png
+├── manifest.webmanifest    # PWA installation metadata & icons
+├── sw.js                   # Service Worker cache controller
 └── README.md               # Repository documentation
 ```
 
@@ -77,41 +138,53 @@ olive-app/
 
 ## 🚀 Getting Started
 
-### 1. Local Development
-Because Olive App is zero-framework, no Node.js runtime or `npm install` step is required.
+### Local Setup
+
+Because Olive App uses native browser technology, no Node.js environment or `npm install` step is required.
 
 1. Clone the repository:
    ```bash
    git clone https://github.com/blessonbiju2006/olive-app.git
+   cd olive-app
    ```
 2. Open the project folder in **VS Code**.
-3. Launch with **Live Server** or open `index.html` directly in any web browser.
+3. Start a local server (e.g., using VS Code **Live Server** extension or Python):
+   ```bash
+   python -m http.server 8000
+   ```
+4. Open your browser and navigate to `http://localhost:8000`.
 
-### 2. PWA Cache Maintenance Pipeline
-To push updates to mobile PWA installations:
+### PWA Cache Maintenance Pipeline
+
+When releasing code updates to mobile PWA installations:
 
 1. Open `sw.js`.
-2. Increment the cache version constant:
+2. Bump the cache version string:
    ```javascript
-   const CACHE_NAME = 'olive-app-v5'; // Bump version (e.g., v4 -> v5)
+   const CACHE_NAME = 'olive-app-v5'; // Increment version (e.g., v4 -> v5)
    ```
-3. Save, commit, and push your changes:
+3. Commit and push the changes:
    ```bash
    git add .
-   git commit -m "Bump service worker cache to v5"
+   git commit -m "Bump service worker cache version to v5"
    git push origin main
    ```
 
 ---
 
-## 🔐 Data Privacy & Security
+## 💡 Operational & Commercial Overview
 
-* **Audio Storage Isolation:** Voice memos are strictly written to local device IndexedDB to keep cloud usage well within Firebase free limits.
-* **Encrypted Transport:** All communication between the app client and Firestore utilizes standard HTTPS/TLS encryption.
-* **Firestore Security:** Database access rules are configured via the Google Cloud Console to restrict access to authorized app paths.
+- **Commercial Setup Valuation:** Estimated at **₹45,000 – ₹60,000** for a full custom client implementation package.
+- **Operational Infrastructure Costs:** Currently **₹0 / month** by combining free static hosting on GitHub Pages with Google Firebase's free Spark tier limits (up to 50,000 daily reads and 20,000 daily writes).
+- **Maintenance Retainer:** Standard market support retainers run **~₹8,000 / year** for software updates and database maintenance.
 
 ---
 
-## 📜 License & Operational Context
+## 📜 License & Branding
 
-Designed and developed for **Olive** (Interior Design, Turnkey Solutions & Painting Services, Kerala, India). Proprietary rights reserved.
+Designed and developed for **Olive** (Interior Design, Turnkey Solutions & Painting Services, Kerala, India). All rights reserved.
+
+<p align="center">
+  <strong>Olive App — PaintPro Command Hub</strong><br>
+  <em>Simplifying site operations. Connecting teams. Managing progress.</em>
+</p>
